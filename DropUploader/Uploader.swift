@@ -36,6 +36,9 @@ final class Uploader {
 
         var request = URLRequest(url: endpoint)
         request.httpMethod = config.method
+        for (key, value) in config.headers {
+            request.setValue(value, forHTTPHeaderField: key)
+        }
 
         let boundary = "Boundary-\(UUID().uuidString)"
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
@@ -88,6 +91,12 @@ final class Uploader {
                     .trimmingCharacters(in: .whitespacesAndNewlines),
                    let u = URL(string: text),
                    u.scheme != nil {
+                    cont.resume(returning: u)
+                    return
+                }
+                
+                if let template = self.config.URL,
+                   let u = try? self.extractURLUsingShareXPath(template, data: data) {
                     cont.resume(returning: u)
                     return
                 }
@@ -181,5 +190,38 @@ final class Uploader {
         case "pdf": return "application/pdf"
         default: return "application/octet-stream"
         }
+    }
+    
+    private func extractURLUsingShareXPath(_ template: String, data: Data) throws -> URL? {
+        guard template.hasPrefix("{json:"), template.hasSuffix("}") else { return nil }
+
+        let pathString = template
+            .replacingOccurrences(of: "{json:", with: "")
+            .replacingOccurrences(of: "}", with: "")
+
+        let obj = try JSONSerialization.jsonObject(with: data)
+        let components = pathString
+            .replacingOccurrences(of: "[", with: ".")
+            .replacingOccurrences(of: "]", with: "")
+            .split(separator: ".")
+            .map(String.init)
+
+        var current: Any = obj
+
+        for key in components {
+            if let index = Int(key), let arr = current as? [Any], index < arr.count {
+                current = arr[index]
+            } else if let dict = current as? [String: Any], let val = dict[key] {
+                current = val
+            } else {
+                return nil
+            }
+        }
+
+        if let s = current as? String {
+            return URL(string: s)
+        }
+
+        return nil
     }
 }

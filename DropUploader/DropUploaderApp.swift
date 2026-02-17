@@ -26,6 +26,8 @@ struct DropUploaderApp: App {
                     serverStore.importServerJSON()
                 }
                 .keyboardShortcut("i", modifiers: [.command, .shift])
+                Button("Clear Server") { serverStore.clearServer() }
+
             }
         }
     }

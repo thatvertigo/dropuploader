@@ -68,11 +68,24 @@ final class UploadCoordinator: ObservableObject {
                 let ns = error as NSError
                 let canceled = (ns.domain == NSURLErrorDomain && ns.code == NSURLErrorCancelled)
 
+                let reason: String = {
+                    if canceled { return "Canceled" }
+
+                    if ns.domain == NSURLErrorDomain {
+                        return "\(ns.localizedDescription) (code \(ns.code))"
+                    }
+
+                    return ns.localizedDescription
+                }()
+
                 switch presentation {
                 case .progressWindow:
-                    progressWC?.fail(with: canceled ? "Canceled" : "Upload failed")
+                    // keep the progress window simple but informative
+                    progressWC?.fail(with: reason)
+
                 case .mainWindow:
-                    status = canceled ? "Canceled" : "Upload failed"
+                    // THIS is what shows under the plus in gray text
+                    status = reason
                 }
             }
         }

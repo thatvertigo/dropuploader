@@ -50,4 +50,9 @@ final class ServerStore: ObservableObject {
             alert.runModal()
         }
     }
+    
+    func clearServer() {
+        storedJSON = ""
+        config = nil
+    }
 }
